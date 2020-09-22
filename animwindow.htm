@@ -1,0 +1,351 @@
+<html>
+<head>
+<title>Programmer's Ruin - Using The AnimateWindow API</title>
+<base target="_self">
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<table border="0" width="100%" cellspacing="0" cellpadding="0">
+  <tr>
+    <td valign="top" align="left" colspan="2"><font face="Verdana, Tahoma, Helvetica, Univers, sans-serf, Verdana, Times" size="5">Using the AnimateWindow API</font></td>
+  </tr>
+  <tr>
+    <td valign="top" align="left"><font size="1" face="Arial, Tahoma, Univers, sans-serf, Verdana, Times" color="#B36117">Posted Friday, July 14, 2000 - Bradley Liang</font></td>
+    <td valign="top" align="left"></td>
+  </tr>
+  <tr>
+    <td valign="top" align="left">&nbsp;&nbsp;</td>
+    <td valign="top" align="left"></td>
+  </tr>
+  <tr>
+    <td valign="bottom" align="left"><strong><font face="Tahoma, Arial, Helvetica, Verdana, Sans-serif" size="3">Create Smooth effects and unblemished fades.</font></strong></td>
+    <td valign="bottom" align="left" nowrap>&nbsp;</td>
+  </tr>
+  <tr>
+    <td valign="top" align="left"><font face="Tahoma, Arial, Helvetica, Verdana, Sans-serif" size="2">&nbsp;&nbsp;</font></td>
+    <td valign="top" align="left" nowrap>&nbsp;</td>
+  </tr>
+  <tr>
+    <td valign="top" align="left"><font face="Tahoma, Arial, Helvetica, Verdana, Sans-serif" size="2">For use with:&nbsp;</font><strong><font color="#B36117" face="Univers, Arial, Helvetica, Verdana, Sans-serif" size="2"><font face="Univers, Arial, Helvetica, Verdana, Sans-serif" size="2"> VB5</font></font><font face="Univers, Arial, Helvetica, Verdana, Sans-serif" size="2" color="#B36117">, VB6</font></strong></td>
+  </tr>
+  <tr>
+    <td valign="top" align="right"></td>
+    <td valign="top" align="right"></td>
+  </tr>
+</table>
+<br>
+<div align="left">
+
+<font face="Verdana"><center>
+<table border="0">
+  <tr>
+    <td width="100%"><font size="5"></font><font face="Verdana" size="2">
+        </font></p>
+        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td width="100%" bgcolor="#B36117" height="22"><font size="2" color="#FFFFFF" face="Verdana"><strong>&nbsp;Introduction</strong></font></td>
+          </tr>
+          <tr>
+            <td width="100%" height="40" valign="top"></td>
+          </tr>
+        </table>
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td valign="top"><font size="2" face="Verdana">It can be fun to add a little
+            something extra to your application - something that sets it apart
+            from the rest of the pack. AnimateWindow can help you do that, not
+            to mention make things look a little bit smoother. When Windows 98
+            introduced slide-in menus, you probably thought they looked a little
+            better than when they were just snapping immediately into view.
+          <p>There are a few things to take note of. First of
+            all, I had some problems getting a textbox control to redraw itself
+            correctly when running the fade-in animation. My first thought would
+            have been that it doesn't respond correctly to WM_PRINT messages, but
+            it redraws fine on the slide and expand animations, so I doubt that
+            that is the problem. Secondly, this API call does not work on Windows
+            95 or Windows NT. It requires 98 or 2000. Therefore, it is best to
+            write either some sort of OS detection code, or put an error trap
+            wherever you make the API call.</p>
+          <p>Note: This example requires Windows 98 or Windows 2000.</font></td>
+        </tr>
+      </table>
+      <font face="Verdana" size="2">
+      <p><font face="Courier New" size="2" color="#0000FF"><br>
+      &nbsp;&nbsp;&nbsp;</font></p>
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td bgcolor="#B36117" height="22"><font size="2" color="#FFFFFF" face="Verdana"><strong>&nbsp;Create - Module modAnimWindow.bas</strong></font></td>
+        </tr>
+      </table>
+      <font size="2" face="Verdana">
+      <p>Copy and Paste the following coding into your new module (modAnimWindow.bas)</P>
+      <font face="Courier New" size="2">
+<pre>
+<font color="#008800">' --- Start Here ---</font>
+Option Explicit
+
+<font color="#008800">' AnimateWindow API Commands</font>
+Public Const AW_HOR_POSITIVE = &amp;H1
+Public Const AW_HOR_NEGATIVE = &amp;H2
+Public Const AW_VER_POSITIVE = &amp;H4
+Public Const AW_VER_NEGATIVE = &amp;H8
+Public Const AW_CENTER = &amp;H10
+Public Const AW_HIDE = &amp;H10000
+Public Const AW_ACTIVATE = &amp;H20000
+Public Const AW_SLIDE = &amp;H40000
+Public Const AW_BLEND = &amp;H80000
+Public Declare Function AnimateWindow Lib &quot;user32&quot; (ByVal hWnd As Long, ByVal dwTime As Long, _
+ ByVal dwFlags As Long) As Long
+
+Public Const WM_PRINTCLIENT = &amp;H318
+
+Public Declare Sub CopyMemory Lib &quot;kernel32&quot; Alias &quot;RtlMoveMemory&quot; (Destination As Any, Source As Any, _
+ ByVal Length As Long)
+
+Public Declare Function GetWindowLong Lib &quot;user32&quot; Alias &quot;GetWindowLongA&quot; (ByVal hWnd As Long, _
+ ByVal nIndex As Long) As Long
+Public Declare Function SetWindowLong Lib &quot;user32&quot; Alias &quot;SetWindowLongA&quot; (ByVal hWnd As Long, _
+ ByVal nIndex As Long, ByVal dwNewLong As Long) As Long
+Public Const GWL_WNDPROC = (-4)
+
+Public Declare Function GetProp Lib &quot;user32&quot; Alias &quot;GetPropA&quot; (ByVal hWnd As Long, _ 
+ ByVal lpString As String) As Long
+Public Declare Function SetProp Lib &quot;user32&quot; Alias &quot;SetPropA&quot; (ByVal hWnd As Long, _ 
+ ByVal lpString As String, ByVal hData As Long) As Long
+Public Declare Function RemoveProp Lib &quot;user32&quot; Alias &quot;RemovePropA&quot; (ByVal hWnd As Long, _
+ ByVal lpString As String) As Long
+
+Public Declare Function CallWindowProc Lib &quot;user32&quot; Alias &quot;CallWindowProcA&quot; (ByVal lpPrevWndFunc As Long,  _
+ ByVal hWnd As Long, ByVal Msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+
+Public Declare Function OleTranslateColor Lib &quot;oleaut32.dll&quot; (ByVal lOleColor As Long, ByVal lHPalette As Long, _
+ lColorRef As Long) As Long
+
+
+Public Function TranslateColor(inCol As Long) As Long
+Dim retCol As Long
+ OleTranslateColor inCol, 0&amp;, retCol
+ TranslateColor = retCol
+End Function
+
+
+Public Function AnimWndProc(ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, _
+ ByVal lParam As Long) As Long
+Dim lProc As Long, lPtr As Long, frm As frmAnim
+
+ lProc = GetProp(hWnd, &quot;ExAnimWndProc&quot;)
+ lPtr = GetProp(hWnd, &quot;ExAnimWndPtr&quot;)
+
+ <font color="#008800">' Catch the WM_PRINTCLIENT message so the form
+ ' won't look like garbage when it appears.</font>
+If wMsg = WM_PRINTCLIENT Then
+    CopyMemory frm, lPtr, 4
+    frm.PrintClient wParam, lParam
+    CopyMemory frm, 0&amp;, 4
+End If
+
+AnimWndProc = CallWindowProc(lProc, hWnd, wMsg, wParam, lParam)
+End Function
+
+
+Public Sub SubclassAnim(frm As frmAnim)
+Dim l As Long
+
+If GetProp(frm.hWnd, &quot;ExAnimWndProc&quot;) &lt;&gt; 0 Then
+    <font color="#008800">' Already subclassed</font>
+    Exit Sub
+End If
+
+l = GetWindowLong(frm.hWnd, GWL_WNDPROC)
+SetProp frm.hWnd, &quot;ExAnimWndProc&quot;, l
+SetProp frm.hWnd, &quot;ExAnimWndPtr&quot;, ObjPtr(frm)
+
+SetWindowLong frm.hWnd, GWL_WNDPROC, AddressOf AnimWndProc
+End Sub
+
+
+Public Sub UnSubclassAnim(frm As frmAnim)
+Dim l As Long
+
+l = GetProp(frm.hWnd, &quot;ExAnimWndProc&quot;)
+If l = 0 Then
+    <font color="#008800">' Isn't subclassed anyway</font>
+    Exit Sub
+End If
+
+SetWindowLong frm.hWnd, GWL_WNDPROC, l
+RemoveProp frm.hWnd, &quot;ExAnimWndProc&quot;
+RemoveProp frm.hWnd, &quot;ExAnimWndPtr&quot;
+End Sub
+
+<font color="#008800">' --- Stop here ---</font>
+</font></dl></span></pre>
+      <p><font face="Courier New" size="2" color="#0000FF"><br>
+      &nbsp;&nbsp;&nbsp;</font></p>
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td bgcolor="#B36117" height="22"><font size="2" color="#FFFFFF" face="Verdana"><strong>&nbsp;Create - Form
+            frmAnim.frm</strong></font></td>
+        </tr>
+      </table>
+      <font face="Verdana" size="2">
+      <dl>
+        <p>Add a CommandButton, a CheckBox, and a TextBox control on the
+        form. It doesn't matter what they're named; we won't be referring to them.
+        They are simply there to illustrate what does and doesn't happen when
+        using AnimateWindow on a form that contains child controls.</p>
+  <font face="Courier New" size="2">
+<pre>
+<font color="#008800">' --- Start here ---</font>
+
+
+Option Explicit
+
+Private Declare Function CreateSolidBrush Lib &quot;gdi32&quot; (ByVal crColor As Long) As Long
+Private Declare Function DeleteObject Lib &quot;gdi32&quot; (ByVal hObject As Long) As Long
+Private Declare Function FillRect Lib &quot;user32&quot; (ByVal hDC As Long, lpRect As RECT, ByVal hBrush As Long) As Long
+Private Type RECT
+    Left As Long
+    Top As Long
+    Right As Long
+    Bottom As Long
+End Type
+
+
+Friend Sub PrintClient(ByVal hDC As Long, ByVal lParam As Long)
+Dim rct As RECT
+Dim hBr As Long
+
+<font color="#008800">' Fill in the hDC with the form's
+' background color. Otherwise the form
+' may appear strangely.</font>
+rct.Left = 0
+rct.Top = 0
+rct.Right = ScaleX(ScaleWidth, ScaleMode, vbPixels)
+rct.Bottom = ScaleY(ScaleHeight, ScaleMode, vbPixels)
+
+hBr = CreateSolidBrush(TranslateColor(Me.BackColor))
+FillRect hDC, rct, hBr
+
+DeleteObject hBr
+End Sub
+
+
+Private Sub Form_Load()
+ SubclassAnim Me
+End Sub
+
+Private Sub Form_Unload(Cancel As Integer)
+ UnSubclassAnim Me
+End Sub</font>
+
+<font color="#008800">' --- Stop here ---</font>
+</span>
+        <p></p>
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td bgcolor="#B36117" height="22"><font size="2" color="#FFFFFF" face="Verdana"><strong>&nbsp;Create - Form
+            frmMain.frm (STARTUP FORM)</strong></font></td>
+        </tr>
+      </table>
+      <font face="Verdana" size="2">
+<p>Add three CommandButtons to the form. Name them <b>cmdSlide</b>,
+<b>cmdExpand</b>, and <b>cmdFade</b>. Now insert this code:</p>
+
+<pre>
+<font color="#008800">' --- Start here ---</font>
+
+
+Option Explicit
+
+Private Sub Form_Load()
+ Load frmAnim
+End Sub
+
+
+Private Sub Form_Unload(Cancel As Integer)
+ Unload frmAnim
+End Sub
+
+
+Private Sub cmdSlide_Click()
+ frmAnim.Move 300, 300
+
+ AnimateWindow frmAnim.hWnd, 300, AW_HOR_POSITIVE + AW_VER_POSITIVE + AW_SLIDE + AW_ACTIVATE
+End Sub
+
+
+Private Sub cmdExpand_Click()
+ frmAnim.Move 300, 300
+
+ AnimateWindow frmAnim.hWnd, 300, AW_CENTER + AW_SLIDE + AW_ACTIVATE
+End Sub
+
+
+Private Sub cmdFade_Click()
+    frmAnim.Move 300, 300
+
+    AnimateWindow frmAnim.hWnd, 300, AW_BLEND + AW_ACTIVATE
+End Sub
+
+
+<font color="#008800">' --- Stop here ---</font>
+</font></dl>
+</span>
+        <p><br>
+        &nbsp;&nbsp;&nbsp;</font></p>
+        <div align="left">
+          <table border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td width="100%" bgcolor="#B36117" height="22" ><font size="2" color="#FFFFFF" face="Verdana"><strong>&nbsp;Finishing
+                Up</strong></font></td>
+            </tr>
+            <tr>
+              <td width="100%"><font size="2" face="Verdana">&nbsp;&nbsp;<br>
+                Make sure your startup form for the project is <b>frmMain</b>.
+                Save the project and run it. Press one of the buttons and
+                you'll see <b>frmAnim</b> slide, roll, or fade into view.
+                You'll have to close <b>frmAnim</b> before hitting another
+                one of the buttons.</font></td>
+            </tr>
+          </table>
+        </div>
+        <p>&nbsp;</p>
+        <hr noshade size="1" color="#B36117" width="100%">
+      </dl>
+      </font></font></font></td>
+  </tr>
+</table>
+
+</CENTER>
+<font face="verdana" size="-2" color="#B36117"><B>All Images, Coding, and HTML<br>
+©Copyright 2000 Bradley Liang<BR>
+Programmer's Ruin - http://prgmrsruin.hypermart.net &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+<SCRIPT><!-- 
+s="na";c="na";j="na";f=""+escape(document.referrer)
+//--></SCRIPT>
+<SCRIPT language="javascript1.2"><!--
+s=screen.width;v=navigator.appName
+if (v != "Netscape") {c=screen.colorDepth}
+else {c=screen.pixelDepth}
+j=navigator.javaEnabled()
+//--></SCRIPT>
+<SCRIPT><!--
+function pr(n) {document.write(n,"\n");}
+NS2Ch=0
+if (navigator.appName == "Netscape" &&
+navigator.appVersion.charAt(0) == "2") {NS2Ch=1}
+if (NS2Ch == 0) {
+r="&size="+s+"&colors="+c+"&referer="+f+"&java="+j+""
+pr("<A HREF=\"http://www.TheCounter.com\" TARGET=\"_top\"><IMG")
+pr("BORDER=0 SRC=\"http://c1.thecounter.com/id=114172"+r+"\"></A>")}
+//--></SCRIPT>
+<NOSCRIPT><A HREF="http://www.TheCounter.com" TARGET="_top"><IMG
+SRC="http://c1.thecounter.com/id=114172" BORDER=0></A>
+</NOSCRIPT>
+</div>
+</body>
+</html>
+
+</html>
